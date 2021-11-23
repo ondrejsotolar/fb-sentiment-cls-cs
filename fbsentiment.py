@@ -1,8 +1,8 @@
 """
 This is a quick & dirty fine-tuning of Small-E-Czech for the sentiment classification 
 of the Czech dataset [1] with p-n-0 classes. The original paper [2] authors got about 
-69 F1 in the best case. We got 63, which is not bad for such a low effort solution. 
-Straka [3] got 82 with RobeCzech (this code gets 74).
+69 F1 in the best case. We got 67, which is not bad for such a low effort solution. 
+Straka [3] got 82 with RobeCzech.
 
 The dataset is imballanced (0:p:n = 2.7:1.3:1), which I don't have time to solve right now. 
 So I cut off the overflow on the majority classes. 
@@ -151,7 +151,7 @@ def compute_metrics(pred):
     #acc = accuracy_score(labels, pred)
     #recall = recall_score(y_true=labels, y_pred=pred)
     #precision = precision_score(y_true=labels, y_pred=pred)
-    f1 = f1_score(y_true=labels, y_pred=pred, average='weighted')    
+    f1 = f1_score(y_true=labels, y_pred=pred, average='macro')    
     return {"f1": f1}
 
 
@@ -213,7 +213,7 @@ def main():
         metric_for_best_model='f1',
         logging_steps=100,  # log & save weights each logging_steps
         evaluation_strategy="steps",  # evaluate each `logging_steps`
-        learning_rate=1e-5,
+        learning_rate=5e-5,
         save_total_limit=3,
         disable_tqdm=True
     )
@@ -221,9 +221,9 @@ def main():
         model=model,  # the instantiated Transformers model to be trained
         args=training_args,  # training arguments, defined above
         train_dataset=train_dataset,  # training dataset
-        eval_dataset=valid_dataset,  # evaluation dataset
+        eval_dataset=valid_dataset,  # Yeah, I know this is bad.. but this is just an example.
         compute_metrics=compute_metrics,  # the callback that computes metrics of interest
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=5)]
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=20)]
     )
 
     print('# train')
@@ -242,7 +242,7 @@ def main():
 
     predictions = np.array([get_probs(valid_texts[i]).cpu().detach().numpy()[0] for i in range(len(valid_texts))])
     print('##################### F1 #########################')
-    f1 = f1_score(valid_labels, np.argmax(predictions, -1), average='weighted')
+    f1 = f1_score(valid_labels, np.argmax(predictions, -1), average='macro')
     print(f1)
     cfm = confusion_matrix(valid_labels, np.argmax(predictions, -1)).tolist()
     print(cfm)
