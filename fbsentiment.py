@@ -1,3 +1,17 @@
+"""
+This is a quick & dirty fine-tuning of Small-E-Czech for the sentiment classification 
+of the Czech dataset [1] with p-n-0 classes. The original paper [2] authors got about 
+69 F1 in the best case. We got 63, which is not bad for such a low effort solution. 
+Straka [3] got 82 with RobeCzech (this code gets 74).
+
+The dataset is imballanced (0:p:n = 2.7:1.3:1), which I don't have time to solve right now. 
+So I cut off the overflow on the majority classes. 
+
+[1] https://lindat.cz/repository/xmlui/handle/11858/00-097C-0000-0022-FE82-7
+[2] https://aclanthology.org/W13-1609.pdf
+[3] https://arxiv.org/abs/2105.11314
+"""
+
 import torch
 from transformers.file_utils import is_tf_available, is_torch_available, is_torch_tpu_available
 from transformers import BertTokenizerFast, BertForSequenceClassification, pipeline
@@ -39,6 +53,8 @@ def set_seed(seed: int):
 def balanced_split(target, trainSize=0.8, getTestIndexes=True, shuffle=False, seed=None):
     """
     :return Index of balanced label split. Cuts off overflow of the majority classes.
+
+    Taken from https://stackoverflow.com/a/48015608/245543
     """
     classes, counts = np.unique(target, return_counts=True)
     nPerClass = float(len(target))*float(trainSize)/float(len(classes))
@@ -101,6 +117,7 @@ def prepare_dataset():
     #    X_train, X_test = X[train_index], X[test_index]
     #    y_train, y_test = y[train_index], y[test_index]
     #    break
+
     # WORKS better
     trI, teI = balanced_split(y)
 
